@@ -26,7 +26,7 @@ class ViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        print(shoppingList.count)
+        print("shoppingList", shoppingList.count)
         
         return shoppingList.count
     }
@@ -51,8 +51,9 @@ class ViewController: UITableViewController {
             completedItems.remove(index) // Убираем индекс, если задача не выполнена
         }
         tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .none) // Обновляем ячейку
+        print("completedItems",  completedItems.count)
     }
-    
+
     
     @objc func addNewPurchase() {
         let ac = UIAlertController(title: "Введіть бажаний товар", message: nil, preferredStyle: .alert)
@@ -76,8 +77,8 @@ class ViewController: UITableViewController {
                 
                 let indexPath = IndexPath(row: shoppingList.count - 1, section: 0)
                 tableView.insertRows(at: [indexPath], with: .automatic)
-                
-                
+             
+                print("completedItems", completedItems.startIndex)
                 return
             } else {
                 errorTitle = "Занадто довге!"
@@ -108,4 +109,17 @@ class ViewController: UITableViewController {
         let activityVC = UIActivityViewController(activityItems: [list], applicationActivities: nil)
         present(activityVC, animated: true)
     }
+    
+    // MARK: - Удаление задачи
+      
+      override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+          if editingStyle == .delete {
+              // Удаление из массива данных
+              shoppingList.remove(at: indexPath.row)
+              completedItems.remove(indexPath.row) // Удаляем индекс выполненной задачи, если есть
+              
+              // Удаление строки из таблицы
+              tableView.deleteRows(at: [indexPath], with: .automatic)
+          }
+      }
 }
