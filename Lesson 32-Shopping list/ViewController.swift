@@ -51,7 +51,7 @@ class ViewController: UITableViewController {
             completedItems.remove(index) // Убираем индекс, если задача не выполнена
         }
         tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .none) // Обновляем ячейку
-        print("completedItems",  completedItems.count)
+        printCompletedItems()
     }
 
     
@@ -78,7 +78,7 @@ class ViewController: UITableViewController {
                 let indexPath = IndexPath(row: shoppingList.count - 1, section: 0)
                 tableView.insertRows(at: [indexPath], with: .automatic)
              
-                print("completedItems", completedItems.startIndex)
+                printCompletedItems()
                 return
             } else {
                 errorTitle = "Занадто довге!"
@@ -122,4 +122,11 @@ class ViewController: UITableViewController {
               tableView.deleteRows(at: [indexPath], with: .automatic)
           }
       }
+    
+    @objc func printCompletedItems() {
+        print("Completed items:")
+        for i in completedItems {
+            print(i)
+        }
+    }
 }
