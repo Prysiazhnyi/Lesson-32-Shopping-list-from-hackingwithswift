@@ -27,6 +27,7 @@ class TaskListsViewController: UITableViewController {
         super.viewDidLoad()
         
         title = "Твої списки"
+        navigationController?.navigationBar.titleTextAttributes = [.foregroundColor: UIColor.label]
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "TaskListCell")
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Створити", style: .plain, target: self, action: #selector(addNewList))
         
@@ -35,6 +36,7 @@ class TaskListsViewController: UITableViewController {
         
         loadTaskLists()
         displayLastSelectedList() // Отображение последнего выбранного списка
+        
     }
     
     func displayLastSelectedList() {

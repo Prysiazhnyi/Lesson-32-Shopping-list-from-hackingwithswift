@@ -33,6 +33,7 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
     private let taskListsKey = "taskLists"
     private var taskLists: [TaskList] = []
     var listName: String = ""
+    let currentListKey = "currentListKey"
 
     
     var currentList: TaskList? {
@@ -72,12 +73,57 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
         
         loadTaskLists()
         loadCurrentList()
+        
+        // Добавляем жест длительного нажатия
+           let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+           tableView.addGestureRecognizer(longPressGesture)
+        
     }
     
     @objc func showTaskLists() {
         let taskListsViewController = TaskListsViewController()
         taskListsViewController.delegate = self
         navigationController?.pushViewController(taskListsViewController, animated: true)
+        
+    }
+    
+   // MARK: - Long Press Gesture Handler
+    
+    @objc func handleLongPress(_ gestureRecognizer: UILongPressGestureRecognizer) {
+        if gestureRecognizer.state == .began {
+            let point = gestureRecognizer.location(in: tableView)
+            guard let indexPath = tableView.indexPathForRow(at: point) else { return }
+            
+            // Получаем задачу для редактирования
+            let task = shoppingList[indexPath.row]
+            presentEditTaskAlert(for: task, at: indexPath)
+        }
+    }
+
+    // MARK: - Present Edit Task Alert
+    func presentEditTaskAlert(for task: Task, at indexPath: IndexPath) {
+        let ac = UIAlertController(title: "Редагувати завдання", message: nil, preferredStyle: .alert)
+        ac.addTextField { textField in
+            textField.text = task.name // Устанавливаем текущее название задачи в текстовое поле
+        }
+        
+        let submitAction = UIAlertAction(title: "Зберегти", style: .default) { [weak self, weak ac] action in
+            guard let answer = ac?.textFields?[0].text else { return }
+            self?.updateTask(at: indexPath, with: answer)
+        }
+        ac.addAction(submitAction)
+        present(ac, animated: true)
+    }
+    
+    // MARK: - Update Task
+    func updateTask(at indexPath: IndexPath, with newName: String) {
+        guard !newName.isEmpty else { return }
+        
+        shoppingList[indexPath.row].name = newName
+        currentList?.tasks = shoppingList
+        saveCurrentList()
+        
+        tableView.reloadRows(at: [indexPath], with: .none)
     }
     
     // MARK: - Title Updates
@@ -119,11 +165,37 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
     }
     
     func loadCurrentList() {
-        if let savedData = defaults.data(forKey: "currentList"),
+        if let savedData = defaults.data(forKey: currentListKey),
            let decodedList = try? JSONDecoder().decode(TaskList.self, from: savedData) {
             currentList = decodedList
+            listName = decodedList.name
+        } else {
+            loadTaskLists() // Сначала загружаем список задач
+            
+            if taskLists.isEmpty {
+                // Если нет списков, создаем дефолтный список
+                //let defaultTasks: [Task] = [Task(name: "Пример задания", isCompleted: false)]
+                let defaultList = TaskList(name: "Твій список", tasks: [])
+                taskLists.append(defaultList)
+                currentList = defaultList
+                listName = defaultList.name
+                saveTaskLists() // Сохраняем обновленный список задач
+            } else {
+                // Загружаем последний выбранный список, если он существует
+                let lastIndex = UserDefaults.standard.integer(forKey: "lastSelectedIndex")
+                if lastIndex < taskLists.count {
+                    currentList = taskLists[lastIndex]
+                    listName = currentList?.name ?? "Твій список"
+                } else {
+                    currentList = taskLists[0]
+                    listName = currentList?.name ?? "Твій список"
+                }
+            }
         }
+        updateTitle() // Обновляем заголовок после загрузки текущего списка
     }
+
+
     
     // MARK: - Table View Methods
     
@@ -175,6 +247,7 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
         saveCurrentList()
         
         tableView.insertRows(at: [IndexPath(row: 0, section: 0)], with: .automatic)
+        tableView.reloadData()
     }
     
     func isPossible(word: String) -> Bool {
