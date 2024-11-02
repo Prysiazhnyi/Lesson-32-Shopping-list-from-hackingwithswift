@@ -7,10 +7,14 @@
 
 import UIKit
 
+struct Task {
+    var name: String
+    var isCompleted: Bool
+}
+
 class ViewController: UITableViewController {
     
-    var shoppingList = [String]()
-    var completedItems = Set<Int>() // Хранение индексов выполненных задач
+    var shoppingList = [Task]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -26,6 +30,7 @@ class ViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        
         print("shoppingList", shoppingList.count)
         
         return shoppingList.count
@@ -35,25 +40,23 @@ class ViewController: UITableViewController {
             return UITableViewCell()
         }
         
-        cell.shoppingLabel.text = shoppingList[indexPath.row]
-        cell.checkBox.isOn = completedItems.contains(indexPath.row) // Проверка, завершена ли задача
-        cell.checkBox.tag = indexPath.row // Установка тега для последующего использования
-        cell.checkBox.addTarget(self, action: #selector(checkBoxToggled(_:)), for: .valueChanged) // Добавление действия при изменении состояния переключателя
+        let task = shoppingList[indexPath.row]
+        cell.shoppingLabel.text = task.name
+        cell.checkBox.isOn = task.isCompleted // Устанавливаем состояние чекбокса в зависимости от флага `isCompleted`
+        cell.checkBox.tag = indexPath.row
+        cell.checkBox.addTarget(self, action: #selector(checkBoxToggled(_:)), for: .valueChanged)
         
         return cell
     }
     
     @objc func checkBoxToggled(_ sender: UISwitch) {
         let index = sender.tag
-        if sender.isOn {
-            completedItems.insert(index) // Добавляем индекс выполненной задачи
-        } else {
-            completedItems.remove(index) // Убираем индекс, если задача не выполнена
-        }
-        tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .none) // Обновляем ячейку
+        shoppingList[index].isCompleted = sender.isOn // Обновляем флаг выполнения задачи в самой модели
+        tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .none)
+        
         printCompletedItems()
     }
-
+    
     
     @objc func addNewPurchase() {
         let ac = UIAlertController(title: "Введіть бажаний товар", message: nil, preferredStyle: .alert)
@@ -68,25 +71,23 @@ class ViewController: UITableViewController {
     }
     
     func submit(_ answer: String) {
-        let errorTitle: String
-        let errorMessage: String
         
         if !answer.isEmpty {
             if isPossible(word: answer) {
-                shoppingList.append(answer)
+                let newTask = Task(name: answer, isCompleted: false) // Создаем новую задачу с флагом `isCompleted = false`
+                shoppingList.append(newTask)
                 
                 let indexPath = IndexPath(row: shoppingList.count - 1, section: 0)
                 tableView.insertRows(at: [indexPath], with: .automatic)
-             
+                
                 printCompletedItems()
+                
                 return
             } else {
-                errorTitle = "Занадто довге!"
-                errorMessage = "Для вашої зручності введіть не більше 20ти символів"
+                let ac = UIAlertController(title: "Занадто довге!", message: "Для вашої зручності введіть не більше 20ти символів", preferredStyle: .alert)
+                ac.addAction(UIAlertAction(title: "OK", style: .default))
+                present(ac, animated: true)
             }
-            let ac = UIAlertController(title: errorTitle, message: errorMessage, preferredStyle: .alert)
-            ac.addAction(UIAlertAction(title: "OK", style: .default))
-            present(ac, animated: true)
         }
     }
     
@@ -96,7 +97,7 @@ class ViewController: UITableViewController {
     
     @objc func shareTapped() {
         // Объединяем элементы списка в одну строку
-        let list = shoppingList.joined(separator: "\n")
+        let list = shoppingList.map { $0.name }.joined(separator: "\n")
         
         // Проверяем, есть ли что-то для отправки
         if list.isEmpty {
@@ -111,22 +112,23 @@ class ViewController: UITableViewController {
     }
     
     // MARK: - Удаление задачи
-      
-      override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-          if editingStyle == .delete {
-              // Удаление из массива данных
-              shoppingList.remove(at: indexPath.row)
-              completedItems.remove(indexPath.row) // Удаляем индекс выполненной задачи, если есть
-              
-              // Удаление строки из таблицы
-              tableView.deleteRows(at: [indexPath], with: .automatic)
-          }
-      }
+    
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            // Удаление из массива данных
+            shoppingList.remove(at: indexPath.row)
+            tableView.deleteRows(at: [indexPath], with: .automatic)
+            
+            // Перезагрузка таблицы вместо удаления строки
+            tableView.reloadData()
+            
+        }
+    }
     
     @objc func printCompletedItems() {
-        print("Completed items:")
-        for i in completedItems {
-            print(i)
+        print("Состояние задач:")
+        for (index, task) in shoppingList.enumerated() {
+            print("Task \(index): \(task.name), Выполнено: \(task.isCompleted)")
         }
     }
 }
