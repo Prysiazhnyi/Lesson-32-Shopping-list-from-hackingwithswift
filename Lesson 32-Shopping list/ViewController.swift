@@ -222,6 +222,7 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
         shoppingList[index].isCompleted = sender.isOn
         currentList?.tasks = shoppingList
         saveCurrentList()
+        updateTitle() 
         tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .none)
     }
     
