@@ -7,32 +7,76 @@
 
 import UIKit
 
-struct Task {
+struct Task: Codable  {
     var name: String
     var isCompleted: Bool
 }
 
 class ViewController: UITableViewController {
     
-    var shoppingList = [Task]()
+    var shoppingList = [Task]() {
+        didSet {
+            updateTitle() // Обновляем title при изменении списка
+        }
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        title = "Ваш список покупок"
-        
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Додати", style: .plain, target: self, action: #selector(addNewPurchase))
-        
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .action, target: self, action: #selector(shareTapped))
         
         // Регистрация пользовательской ячейки
         tableView.register(ShoppingListCell.self, forCellReuseIdentifier: "ShoppingListCell")
+        
+        loadShoppingList() // Загрузка данных при запуске
+        updateTitle()
+    }
+    //MARK: - Робота с Title
+    
+    // Функция для обновления заголовка
+    func updateTitle() {
+        let totalTasks = shoppingList.count
+        let completedTasks = shoppingList.filter { $0.isCompleted }.count
+        let titleText = "Ваш список задач: \(totalTasks) / \(completedTasks)"
+        
+        if totalTasks > 0 && totalTasks == completedTasks {
+            // Если все задачи выполнены, устанавливаем зеленый цвет
+            let attributes: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.systemGreen]
+            navigationController?.navigationBar.titleTextAttributes = attributes
+        } else if  totalTasks > 0 && completedTasks == 0 {
+            // Если все задачи выполнены, устанавливаем зеленый цвет
+            let attributes: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.systemRed]
+            navigationController?.navigationBar.titleTextAttributes = attributes
+        }else {
+            // Если не все задачи выполнены, устанавливаем стандартный цвет
+            let attributes: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.label] // Цвет по умолчанию
+            
+            navigationController?.navigationBar.titleTextAttributes = attributes
+        }
+        
+        title = titleText
     }
     
+    // MARK: - Сохранение и загрузка данных
+    
+    func saveShoppingList() {
+        if let encodedData = try? JSONEncoder().encode(shoppingList) {
+            UserDefaults.standard.set(encodedData, forKey: "shoppingList")
+        }
+    }
+    
+    func loadShoppingList() {
+        if let savedData = UserDefaults.standard.data(forKey: "shoppingList"),
+           let decodedList = try? JSONDecoder().decode([Task].self, from: savedData) {
+            shoppingList = decodedList
+            tableView.reloadData()
+        }
+    }
+    
+    // MARK: - Методы для работы с таблицей
+    
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        
-        print("shoppingList", shoppingList.count)
-        
         return shoppingList.count
     }
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -52,11 +96,11 @@ class ViewController: UITableViewController {
     @objc func checkBoxToggled(_ sender: UISwitch) {
         let index = sender.tag
         shoppingList[index].isCompleted = sender.isOn // Обновляем флаг выполнения задачи в самой модели
+        saveShoppingList()
         tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .none)
-        
+        updateTitle() // Обновляем заголовок после изменения состояния задачи
         printCompletedItems()
     }
-    
     
     @objc func addNewPurchase() {
         let ac = UIAlertController(title: "Введіть бажаний товар", message: nil, preferredStyle: .alert)
@@ -75,11 +119,13 @@ class ViewController: UITableViewController {
         if !answer.isEmpty {
             if isPossible(word: answer) {
                 let newTask = Task(name: answer, isCompleted: false) // Создаем новую задачу с флагом `isCompleted = false`
-                shoppingList.append(newTask)
+                shoppingList.insert(newTask, at: 0)
                 
-                let indexPath = IndexPath(row: shoppingList.count - 1, section: 0)
+                let indexPath = IndexPath(row: 0, section: 0)
                 tableView.insertRows(at: [indexPath], with: .automatic)
+                tableView.reloadData()
                 
+                saveShoppingList()  // Сохранение списка после добавления новой задачи
                 printCompletedItems()
                 
                 return
@@ -118,14 +164,16 @@ class ViewController: UITableViewController {
             // Удаление из массива данных
             shoppingList.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .automatic)
-            
             // Перезагрузка таблицы вместо удаления строки
             tableView.reloadData()
             
+            saveShoppingList() // Сохранение списка после удаления задачи
+            updateTitle() // Обновляем заголовок после изменения состояния задачи
         }
     }
     
     @objc func printCompletedItems() {
+        print("Количесво задач:", shoppingList.count)
         print("Состояние задач:")
         for (index, task) in shoppingList.enumerated() {
             print("Task \(index): \(task.name), Выполнено: \(task.isCompleted)")
