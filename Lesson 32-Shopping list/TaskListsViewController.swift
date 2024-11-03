@@ -81,7 +81,7 @@ class TaskListsViewController: UITableViewController {
         alert.addAction(UIAlertAction(title: "Скасувати", style: .cancel)) // Дія скасування
         present(alert, animated: true) // Показуємо алерт
     }
-
+    
     func loadTaskLists() {
         taskLists.removeAll() // Очищаємо масив списків
         if let data = UserDefaults.standard.data(forKey: "taskLists"),

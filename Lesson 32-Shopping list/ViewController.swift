@@ -8,8 +8,8 @@
 import UIKit
 
 class Task: Codable {
-    var name: String // Назва завдання
-    var isCompleted: Bool // Статус виконання завдання
+    var name: String
+    var isCompleted: Bool
     
     init(name: String, isCompleted: Bool) {
         self.name = name
@@ -18,8 +18,8 @@ class Task: Codable {
 }
 
 class TaskList: Codable {
-    var name: String // Назва списку завдань
-    var tasks: [Task] // Масив завдань
+    var name: String
+    var tasks: [Task]
     
     init(name: String, tasks: [Task]) {
         self.name = name
@@ -29,215 +29,251 @@ class TaskList: Codable {
 
 class ViewController: UITableViewController, TaskListSelectionDelegate {
     
-    private let defaults = UserDefaults.standard // Стандартні налаштування
-    private let taskListsKey = "taskLists" // Ключ для зберігання списків завдань
-    private var taskLists: [TaskList] = [] // Масив списків завдань
-    var listName: String = "" // Назва поточного списку
-    let currentListKey = "currentListKey" // Ключ для зберігання поточного списку
+    private let defaults = UserDefaults.standard
+    private let taskListsKey = "taskLists"
+    private var taskLists: [TaskList] = []
+    var listName: String = ""
+    let currentListKey = "currentListKey"
     
-    var currentList: TaskList? { // Поточний список завдань
+    var currentList: TaskList? {
         didSet {
-            shoppingList = currentList?.tasks ?? [] // Оновлюємо список покупок
-            updateTitle() // Оновлюємо заголовок
-            tableView.reloadData() // Оновлюємо таблицю
+            shoppingList = currentList?.tasks ?? []
+            updateTitle()
+            tableView.reloadData()
         }
     }
     
-    func didSelectTaskList(_ taskList: TaskList) { // Метод для вибору списку завдань
-        currentList = taskList // Встановлюємо поточний список
-        shoppingList = taskList.tasks // Оновлюємо список покупок
-        listName = taskList.name // Оновлюємо назву списку
-        print("Вибраний список: \(currentList?.name ?? "Немає назви")") // Виводимо вибраний список
-        updateTitle() // Оновлюємо заголовок
-        saveCurrentList() // Зберігаємо поточний список
-        tableView.reloadData() // Оновлюємо таблицю
+    func didSelectTaskList(_ taskList: TaskList) {
+        currentList = taskList
+        shoppingList = taskList.tasks
+        listName = taskList.name
+        print("Выбранный список: \(currentList?.name ?? "Нет названия")")
+        updateTitle()
+        saveCurrentList()
+        tableView.reloadData()
     }
     
-    var shoppingList: [Task] = [] { // Список покупок
+    var shoppingList: [Task] = [] {
         didSet {
-            updateTitle() // Оновлюємо заголовок при зміні списку
+            updateTitle() // Обновляем title при изменении списка
         }
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Налаштовуємо кнопки навігаційного меню
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Додати", style: .plain, target: self, action: #selector(addNewPurchase))
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Списки", style: .plain, target: self, action: #selector(showTaskLists))
         
-        tableView.register(ShoppingListCell.self, forCellReuseIdentifier: "ShoppingListCell") // Реєструємо кастомну клітинку
+        tableView.register(ShoppingListCell.self, forCellReuseIdentifier: "ShoppingListCell")
         
-        loadTaskLists() // Завантажуємо списки завдань
-        loadCurrentList() // Завантажуємо поточний список
+        loadTaskLists()
+        loadCurrentList()
         
-        // Додаємо жест тривалого натискання
+        // Добавляем жест длительного нажатия
         let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
         tableView.addGestureRecognizer(longPressGesture)
+        
     }
     
-    @objc func showTaskLists() { // Метод для показу списків завдань
-        let taskListsViewController = TaskListsViewController() // Створюємо контролер списків завдань
-        taskListsViewController.delegate = self // Встановлюємо делегата
-        navigationController?.pushViewController(taskListsViewController, animated: true) // Переходимо до контролера
+    @objc func showTaskLists() {
+        let taskListsViewController = TaskListsViewController()
+        taskListsViewController.delegate = self
+        navigationController?.pushViewController(taskListsViewController, animated: true)
     }
     
-    // MARK: - Обробник жесту тривалого натискання
+    // MARK: - Long Press Gesture Handler
+    
     @objc func handleLongPress(_ gestureRecognizer: UILongPressGestureRecognizer) {
         if gestureRecognizer.state == .began {
-            let point = gestureRecognizer.location(in: tableView) // Отримуємо координати натискання
-            guard let indexPath = tableView.indexPathForRow(at: point) else { return } // Отримуємо шлях до рядка
+            let point = gestureRecognizer.location(in: tableView)
+            guard let indexPath = tableView.indexPathForRow(at: point) else { return }
             
-            // Отримуємо завдання для редагування
+            // Получаем задачу для редактирования
             let task = shoppingList[indexPath.row]
-            presentEditTaskAlert(for: task, at: indexPath) // Показуємо алерт для редагування
+            presentEditTaskAlert(for: task, at: indexPath)
         }
     }
     
-    // MARK: - Показати алерт для редагування завдання
+    // MARK: - Present Edit Task Alert
     func presentEditTaskAlert(for task: Task, at indexPath: IndexPath) {
         let ac = UIAlertController(title: "Редагувати завдання", message: nil, preferredStyle: .alert)
         ac.addTextField { textField in
-            textField.text = task.name // Встановлюємо текуще назву завдання в текстове поле
+            textField.text = task.name // Устанавливаем текущее название задачи в текстовое поле
         }
         
         let submitAction = UIAlertAction(title: "Зберегти", style: .default) { [weak self, weak ac] action in
             guard let answer = ac?.textFields?[0].text else { return }
-            self?.updateTask(at: indexPath, with: answer) // Оновлюємо завдання
+            self?.updateTask(at: indexPath, with: answer)
         }
         ac.addAction(submitAction)
-        present(ac, animated: true) // Показуємо алерт
+        present(ac, animated: true)
     }
     
-    // MARK: - Оновити завдання
+    // MARK: - Update Task
     func updateTask(at indexPath: IndexPath, with newName: String) {
-        guard !newName.isEmpty else { return } // Перевіряємо, чи не порожнє нове ім'я
+        guard !newName.isEmpty else { return }
         
-        shoppingList[indexPath.row].name = newName // Оновлюємо назву завдання
-        currentList?.tasks = shoppingList // Оновлюємо завдання в поточному списку
-        saveCurrentList() // Зберігаємо поточний список
+        shoppingList[indexPath.row].name = newName
+        currentList?.tasks = shoppingList
+        saveCurrentList()
         
-        tableView.reloadRows(at: [indexPath], with: .none) // Оновлюємо рядок таблиці
+        tableView.reloadRows(at: [indexPath], with: .none)
     }
     
-    // MARK: - Оновлення заголовка
+    // MARK: - Title Updates
+    
     func updateTitle() {
-        let totalTasks = shoppingList.count // Загальна кількість завдань
-        let completedTasks = shoppingList.filter { $0.isCompleted }.count // Кількість виконаних завдань
+        let totalTasks = shoppingList.count
+        let completedTasks = shoppingList.filter { $0.isCompleted }.count
         
-        // Створюємо UILabel для listName
+        // Создаем UILabel для listName
         let listNameLabel = UILabel()
-        listNameLabel.adjustsFontSizeToFitWidth = true // Автоматичне підстроювання шрифту
-        listNameLabel.minimumScaleFactor = 0.7 // Мінімальний масштаб шрифту
-        listNameLabel.lineBreakMode = .byTruncatingTail // Перенос рядка
-        listNameLabel.text = listName // Встановлюємо текст заголовка
-        listNameLabel.font = UIFont.systemFont(ofSize: 17) // Шрифт заголовка
+        listNameLabel.adjustsFontSizeToFitWidth = true
+        listNameLabel.minimumScaleFactor = 0.7
+        listNameLabel.lineBreakMode = .byTruncatingTail
+        listNameLabel.text = listName
+        listNameLabel.font = UIFont.systemFont(ofSize: 17)
         
-        // Створюємо UILabel для статусу завдань
+        // Создаем UILabel для статуса задач
         let taskStatusLabel = UILabel()
-        taskStatusLabel.text = ": \(totalTasks) / \(completedTasks)" // Встановлюємо текст статусу
-        taskStatusLabel.font = UIFont.systemFont(ofSize: 17) // Шрифт статусу
+        taskStatusLabel.text = ": \(totalTasks) / \(completedTasks)"
+        taskStatusLabel.font = UIFont.systemFont(ofSize: 17)
         
-        // Контейнерний StackView для об'єднання обох UILabel
+        // Контейнерный StackView для объединения обоих UILabel
         let titleStackView = UIStackView(arrangedSubviews: [listNameLabel, taskStatusLabel])
-        titleStackView.axis = .horizontal // Горизонтальна ось
-        titleStackView.alignment = .center // Вирівнювання по центру
-        titleStackView.spacing = 5 // Проміжок між елементами
+        titleStackView.axis = .horizontal
+        titleStackView.alignment = .center
+        titleStackView.spacing = 5
         
-        // Встановлюємо колір заголовка
+        // Устанавливаем цвет заголовка
         let color: UIColor = totalTasks > 0
         ? (totalTasks == completedTasks ? .systemGreen : (completedTasks == 0 ? .systemRed : .label))
         : .label
-        listNameLabel.textColor = color // Встановлюємо колір тексту заголовка
-        taskStatusLabel.textColor = color // Встановлюємо колір тексту статусу
+        listNameLabel.textColor = color
+        taskStatusLabel.textColor = color
         
-        // Встановлюємо titleView з нашим StackView
+        // Устанавливаем titleView с нашим StackView
         navigationItem.titleView = titleStackView
     }
     
-    // MARK: - Збереження даних
+    // MARK: - Data Persistence
+    
     func saveTaskLists() {
         if let encodedData = try? JSONEncoder().encode(taskLists) {
-            defaults.set(encodedData, forKey: taskListsKey) // Зберігаємо закодовані дані
+            defaults.set(encodedData, forKey: taskListsKey)
         }
     }
     
     func loadTaskLists() {
         if let savedData = defaults.data(forKey: taskListsKey),
            let decodedLists = try? JSONDecoder().decode([TaskList].self, from: savedData) {
-            taskLists = decodedLists // Завантажуємо списки завдань
+            taskLists = decodedLists
         }
     }
     
     func saveCurrentList() {
         if let currentList = currentList,
            let index = taskLists.firstIndex(where: { $0.name == currentList.name }) {
-            taskLists[index] = currentList // Оновлюємо поточний список у масиві
-            saveTaskLists() // Зберігаємо списки завдань
+            taskLists[index] = currentList
+            saveTaskLists()
         }
     }
     
     func loadCurrentList() {
         if let savedData = defaults.data(forKey: currentListKey),
            let decodedList = try? JSONDecoder().decode(TaskList.self, from: savedData) {
-            currentList = decodedList // Завантажуємо поточний список
+            currentList = decodedList
+            listName = decodedList.name
+        } else {
+            loadTaskLists() // Сначала загружаем список задач
+            
+            if taskLists.isEmpty {
+                // Если нет списков, создаем дефолтный список
+                let defaultList = TaskList(name: "Мій список", tasks: [])
+                taskLists.append(defaultList)
+                currentList = defaultList
+                listName = defaultList.name
+                saveTaskLists() // Сохраняем обновленный список задач
+            } else {
+                // Загружаем последний выбранный список, если он существует
+                let lastIndex = UserDefaults.standard.integer(forKey: "lastSelectedIndex")
+                if lastIndex < taskLists.count {
+                    currentList = taskLists[lastIndex]
+                    listName = currentList?.name ?? "Мій список"
+                } else {
+                    currentList = taskLists[0]
+                    listName = currentList?.name ?? "Мій список"
+                }
+            }
         }
+        updateTitle() // Обновляем заголовок после загрузки текущего списка
     }
     
-    override func numberOfSections(in tableView: UITableView) -> Int {
-        return 1 // Кількість секцій у таблиці
-    }
+    // MARK: - Table View Methods
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return shoppingList.count // Кількість рядків у секції
+        return shoppingList.count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "ShoppingListCell", for: indexPath) as! ShoppingListCell // Отримуємо клітинку
-        let task = shoppingList[indexPath.row] // Отримуємо завдання
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShoppingListCell", for: indexPath) as? ShoppingListCell else {
+            return UITableViewCell()
+        }
         
-        cell.textLabel?.text = task.name // Встановлюємо текст клітинки
-        cell.accessoryType = task.isCompleted ? .checkmark : .none // Встановлюємо тип додаткового елемента
+        let task = shoppingList[indexPath.row]
+        cell.shoppingLabel.text = task.name
+        cell.checkBox.isOn = task.isCompleted
+        cell.checkBox.tag = indexPath.row
+        cell.checkBox.addTarget(self, action: #selector(checkBoxToggled(_:)), for: .valueChanged)
         
-        return cell // Повертаємо клітинку
+        return cell
+    }
+    
+    @objc func checkBoxToggled(_ sender: UISwitch) {
+        let index = sender.tag
+        shoppingList[index].isCompleted = sender.isOn
+        currentList?.tasks = shoppingList
+        saveCurrentList()
+        updateTitle()
+        tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .none)
+    }
+    
+    @objc func addNewPurchase() {
+        guard currentList != nil else { return }
+        let ac = UIAlertController(title: "Введіть свої нотатки", message: nil, preferredStyle: .alert)
+        ac.addTextField()
+        
+        let submitAction = UIAlertAction(title: "Зберегти", style: .default) { [weak self, weak ac] action in
+            guard let answer = ac?.textFields?[0].text else { return }
+            self?.submit(answer)
+        }
+        ac.addAction(submitAction)
+        present(ac, animated: true)
+    }
+    
+    func submit(_ answer: String) {
+        guard !answer.isEmpty, isPossible(word: answer) else { return }
+        
+        let newTask = Task(name: answer, isCompleted: false)
+        shoppingList.insert(newTask, at: 0)
+        currentList?.tasks = shoppingList
+        saveCurrentList()
+        
+        tableView.insertRows(at: [IndexPath(row: 0, section: 0)], with: .automatic)
+        tableView.reloadData()
+    }
+    
+    func isPossible(word: String) -> Bool {
+        return word.count <= 30
     }
     
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            shoppingList.remove(at: indexPath.row) // Видаляємо завдання
-            currentList?.tasks = shoppingList // Оновлюємо завдання в поточному списку
-            saveCurrentList() // Зберігаємо поточний список
-            tableView.deleteRows(at: [indexPath], with: .fade) // Оновлюємо таблицю
+            shoppingList.remove(at: indexPath.row)
+            currentList?.tasks = shoppingList
+            saveCurrentList()
+            tableView.deleteRows(at: [indexPath], with: .automatic)
         }
-    }
-    
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        shoppingList[indexPath.row].isCompleted.toggle() // Перемикаємо статус виконання
-        tableView.reloadRows(at: [indexPath], with: .none) // Оновлюємо рядок таблиці
-        saveCurrentList() // Зберігаємо поточний список
-    }
-    
-    @objc func addNewPurchase() { // Метод для додавання нового завдання
-        let ac = UIAlertController(title: "Додати нове завдання", message: nil, preferredStyle: .alert)
-        ac.addTextField { textField in // Додаємо текстове поле
-            textField.placeholder = "Назва завдання" // Підказка
-        }
-        
-        let submitAction = UIAlertAction(title: "Додати", style: .default) { [weak self, weak ac] action in
-            guard let taskName = ac?.textFields?[0].text else { return }
-            self?.addTask(name: taskName) // Додаємо завдання
-        }
-        
-        ac.addAction(submitAction) // Додаємо дію
-        present(ac, animated: true) // Показуємо алерт
-    }
-    
-    // MARK: - Додати завдання
-    func addTask(name: String) {
-        let task = Task(name: name, isCompleted: false) // Створюємо нове завдання
-        shoppingList.append(task) // Додаємо до списку
-        currentList?.tasks = shoppingList // Оновлюємо завдання в поточному списку
-        saveCurrentList() // Зберігаємо поточний список
-        tableView.reloadData() // Оновлюємо таблицю
     }
 }
