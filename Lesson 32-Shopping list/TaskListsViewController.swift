@@ -42,7 +42,7 @@ class TaskListsViewController: UITableViewController {
     func displayLastSelectedList() {
             if taskLists.isEmpty {
                 // Если списков нет, создаем новый
-                let defaultList = TaskList(name: "Твій список", tasks: [])
+                let defaultList = TaskList(name: "Мій список", tasks: [])
                 taskLists.append(defaultList)
                 saveTaskLists()
                 tableView.reloadData()
@@ -65,7 +65,7 @@ class TaskListsViewController: UITableViewController {
     }
     
     func presentEditAlert(for taskList: TaskList) {
-        let alert = UIAlertController(title: "Редактировать список", message: "Введите новое имя списка", preferredStyle: .alert)
+        let alert = UIAlertController(title: "Редагувати назву", message: "Введіть нове ім'я списку", preferredStyle: .alert)
         alert.addTextField { textField in
             textField.text = taskList.name
         }
@@ -79,7 +79,7 @@ class TaskListsViewController: UITableViewController {
                        }
                    }
                }))
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Скасувати", style: .cancel))
         present(alert, animated: true)
     }
 

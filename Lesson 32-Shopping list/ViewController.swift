@@ -34,7 +34,6 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
     private var taskLists: [TaskList] = []
     var listName: String = ""
     let currentListKey = "currentListKey"
-
     
     var currentList: TaskList? {
         didSet {
@@ -53,15 +52,12 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
         saveCurrentList()
         tableView.reloadData()
     }
-
     
     var shoppingList: [Task] = [] {
         didSet {
             updateTitle() // Обновляем title при изменении списка
         }
     }
-    
-   
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -75,8 +71,8 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
         loadCurrentList()
         
         // Добавляем жест длительного нажатия
-           let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-           tableView.addGestureRecognizer(longPressGesture)
+        let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        tableView.addGestureRecognizer(longPressGesture)
         
     }
     
@@ -84,10 +80,9 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
         let taskListsViewController = TaskListsViewController()
         taskListsViewController.delegate = self
         navigationController?.pushViewController(taskListsViewController, animated: true)
-        
     }
     
-   // MARK: - Long Press Gesture Handler
+    // MARK: - Long Press Gesture Handler
     
     @objc func handleLongPress(_ gestureRecognizer: UILongPressGestureRecognizer) {
         if gestureRecognizer.state == .began {
@@ -99,7 +94,7 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
             presentEditTaskAlert(for: task, at: indexPath)
         }
     }
-
+    
     // MARK: - Present Edit Task Alert
     func presentEditTaskAlert(for task: Task, at indexPath: IndexPath) {
         let ac = UIAlertController(title: "Редагувати завдання", message: nil, preferredStyle: .alert)
@@ -132,13 +127,34 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
         let totalTasks = shoppingList.count
         let completedTasks = shoppingList.filter { $0.isCompleted }.count
         
-        let titleText = "\(listName): \(totalTasks) / \(completedTasks)"
-        title = titleText
+        // Создаем UILabel для listName
+        let listNameLabel = UILabel()
+        listNameLabel.adjustsFontSizeToFitWidth = true
+        listNameLabel.minimumScaleFactor = 0.7
+        listNameLabel.lineBreakMode = .byTruncatingTail
+        listNameLabel.text = listName
+        listNameLabel.font = UIFont.systemFont(ofSize: 17)
         
+        // Создаем UILabel для статуса задач
+        let taskStatusLabel = UILabel()
+        taskStatusLabel.text = ": \(totalTasks) / \(completedTasks)"
+        taskStatusLabel.font = UIFont.systemFont(ofSize: 17)
+        
+        // Контейнерный StackView для объединения обоих UILabel
+        let titleStackView = UIStackView(arrangedSubviews: [listNameLabel, taskStatusLabel])
+        titleStackView.axis = .horizontal
+        titleStackView.alignment = .center
+        titleStackView.spacing = 5
+        
+        // Устанавливаем цвет заголовка
         let color: UIColor = totalTasks > 0
-            ? (totalTasks == completedTasks ? .systemGreen : (completedTasks == 0 ? .systemRed : .label))
-            : .label
-        navigationController?.navigationBar.titleTextAttributes = [.foregroundColor: color]
+        ? (totalTasks == completedTasks ? .systemGreen : (completedTasks == 0 ? .systemRed : .label))
+        : .label
+        listNameLabel.textColor = color
+        taskStatusLabel.textColor = color
+        
+        // Устанавливаем titleView с нашим StackView
+        navigationItem.titleView = titleStackView
     }
     
     // MARK: - Data Persistence
@@ -175,7 +191,7 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
             if taskLists.isEmpty {
                 // Если нет списков, создаем дефолтный список
                 //let defaultTasks: [Task] = [Task(name: "Пример задания", isCompleted: false)]
-                let defaultList = TaskList(name: "Твій список", tasks: [])
+                let defaultList = TaskList(name: "Мій список", tasks: [])
                 taskLists.append(defaultList)
                 currentList = defaultList
                 listName = defaultList.name
@@ -185,17 +201,15 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
                 let lastIndex = UserDefaults.standard.integer(forKey: "lastSelectedIndex")
                 if lastIndex < taskLists.count {
                     currentList = taskLists[lastIndex]
-                    listName = currentList?.name ?? "Твій список"
+                    listName = currentList?.name ?? "Мій список"
                 } else {
                     currentList = taskLists[0]
-                    listName = currentList?.name ?? "Твій список"
+                    listName = currentList?.name ?? "Мій список"
                 }
             }
         }
         updateTitle() // Обновляем заголовок после загрузки текущего списка
     }
-
-
     
     // MARK: - Table View Methods
     
@@ -222,7 +236,7 @@ class ViewController: UITableViewController, TaskListSelectionDelegate {
         shoppingList[index].isCompleted = sender.isOn
         currentList?.tasks = shoppingList
         saveCurrentList()
-        updateTitle() 
+        updateTitle()
         tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .none)
     }
     
